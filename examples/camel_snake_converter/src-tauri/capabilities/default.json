@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "polygon:allow-register",
+    "polygon:allow-register-all",
+    "polygon:allow-show",
+    "polygon:allow-hide",
+    "polygon:allow-remove",
+    "polygon:allow-update",
+    "polygon:allow-clear"
+  ]
+}
