@@ -1,8 +1,8 @@
 # Tauri Plugin polygon
 
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
-[![crates.io](https://img.shields.io/badge/crates.io-0.1.0-darkgreen.svg)](https://crates.io/crates/tauri-plugin-pilygon)
-[![docs](https://img.shields.io/badge/docs-passing-green.svg)](https://docs.rs/tauri-plugin-pilygon/0.1.0/tauri-plugin-pilygon/)
+[![crates.io](https://img.shields.io/badge/crates.io-0.1.0-darkgreen.svg)](https://crates.io/crates/tauri-plugin-polygon)
+[![docs](https://img.shields.io/badge/docs-passing-green.svg)](https://docs.rs/tauri-plugin-polygon/latest/tauri-plugin-polygon/)
 
 
 A plugin for [tauri@v2](https://tauri.app/) to achieve click-through of the tauri main window by allowing developers to define polygons, thus customizing the mouse response area.
@@ -99,7 +99,7 @@ fn main() {
 
 ### Call from Rust
 
-Learn more api about [tauri-plugin-polygon](https://docs.rs/tauri-plugin-pilygon/0.1.0/tauri-plugin-pilygon/).
+Learn more api about [tauri-plugin-polygon](https://docs.rs/tauri-plugin-polygon/latest/tauri-plugin-polygon/).
 
 #### Example
 
