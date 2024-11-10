@@ -1,6 +1,6 @@
 {
   "name": "tauri-plugin-polygon-api",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "houycth",
   "description": "A plugin for [tauri@v2](https://tauri.app/) to achieve click-through of the tauri main window by allowing developers to define polygons, thus customizing the mouse response area.",
   "type": "module",
