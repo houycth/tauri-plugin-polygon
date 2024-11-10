@@ -98,7 +98,7 @@ fn main() {
 
 ### Call from Rust
 
-Learn more api about [tauri-plugin-polygon](https://docs.rs/tauri-plugin-polygon/latest/tauri-plugin-polygon/).
+Learn more api about [tauri-plugin-polygon](https://docs.rs/tauri-plugin-polygon).
 
 #### Example
 
