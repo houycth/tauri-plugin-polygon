@@ -34,12 +34,12 @@ cargo add tauri-plugin-polygon
 
 ## Usage
 
-_Go with [examples](./examples/)._
+_Go with [examples](https://github.com/houycth/tauri-plugin-polygon/tree/main/examples)._
 
 ### Configuration
 Before using this plugin, we need to make some changes to `tauri.conf.json`, `html` and `src-tauri\capabilities\default.json`, so that we can build a full-screen and transparent background application, and invoke commands from the JS context.
 
-```json
+```json5
 // tauri.conf.json
 "app": {
     "windows": [
@@ -63,7 +63,7 @@ Before using this plugin, we need to make some changes to `tauri.conf.json`, `ht
   </body>
 </html>
 ```
-```json
+```json5
 // src-tauri\capabilities\default.json
 {
     // ...
