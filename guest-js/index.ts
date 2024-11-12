@@ -41,7 +41,8 @@ async function hide(id: string): Promise<Response> {
   }).then((r: Response) => r);
 }
 
-async function update(id: string, points: [[number, number]]): Promise<Response> {
+type points = [number, number];
+async function update(id: string, points: [points, points, points, ...points[]]): Promise<Response> {
   return await invoke<Response>('plugin:polygon|update', {
     id,
     points
@@ -57,26 +58,29 @@ const POLYGON_MOUSE_MOVE = "POLYGON_MOUSE_MOVE";
 const POLYGON_WHEEL = "POLYGON_WHEEL";
 const POLYGON_ERROR = "POLYGON_ERROR";
 
-type Payload = ClickPayload | DragPayload | ErrorPayload | WheelPayload;
+type Payload = ClickPayload | DragPayload | ErrorPayload | WheelPayload | MovePayload;
 type EventCallback = (payload: Payload) => void;
 
-interface ClickPayload {
+export interface ClickPayload {
   position: { x: number, y: number },
 }
 
-interface WheelPayload {
+export interface MovePayload {
+  position: { x: number, y: number },
+}
+
+export interface WheelPayload {
   delta: { x: number, y: number },
 }
 
-interface DragPayload {
-  from: {x: number, y: number},
-  to: {x: number, y: number}
+export interface DragPayload {
+  from: { x: number, y: number },
+  to: { x: number, y: number }
 }
 
-interface ErrorPayload {
+export interface ErrorPayload {
   error: string
 }
-type Event = "LeftClick" | "DoubleClick" | "RightClick" | "Drag" | "MouseMove" | "Wheel" | "Error";
 const Events = ["LeftClick", "DoubleClick", "RightClick", "Drag", "MouseMove", "Wheel", "Error"];
 
 const EventCallbacks = {
@@ -89,14 +93,30 @@ const EventCallbacks = {
   Error: [] as EventCallback[],
 }
 
-function on(evt: Event, callback: (payload: Payload) => void) {
+type ClickEvent = "LeftClick" | "DoubleClick" | "RightClick";
+type MoveEvent = "MouseMove";
+type DragEvent = "Drag";
+type ErrorEvent = "Error";
+type WheelEvent = "Wheel";
+
+function on(env: ClickEvent, callback: (payload: ClickPayload) => void): void;
+function on(env: DragEvent, callback: (payload: DragPayload) => void): void;
+function on(env: ErrorEvent, callback: (payload: ErrorPayload) => void): void;
+function on(env: WheelEvent, callback: (payload: WheelPayload) => void): void;
+function on(env: MoveEvent, callback: (payload: MovePayload) => void): void;
+function on(evt: ClickEvent | DragEvent | ErrorEvent | WheelEvent | MoveEvent, callback: any) {
   if (!Events.includes(evt)) {
     throw new Error(`Event [${evt}] does not exist. Available event: ${Events.join(', ')}`);
   }
   EventCallbacks[evt].push(callback);
 }
 
-function off(evt: Event, callback: (payload: Payload) => void) {
+function off(env: ClickEvent, callback: (payload: ClickPayload) => void): void;
+function off(env: DragEvent, callback: (payload: DragPayload) => void): void;
+function off(env: ErrorEvent, callback: (payload: ErrorPayload) => void): void;
+function off(env: WheelEvent, callback: (payload: WheelEvent) => void): void;
+function off(env: MoveEvent, callback: (payload: MovePayload) => void): void;
+function off(evt: ClickEvent | DragEvent | ErrorEvent | WheelEvent | MoveEvent, callback: any) {
   if (!Events.includes(evt)) {
     throw new Error(`Event [${evt}] does not exist. Available event: ${Events.join(', ')}`);
   }
