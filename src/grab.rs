@@ -76,9 +76,20 @@ fn emit<R: Runtime>(handle: &AppHandle<R>, event: Event) {
         Event::LeftClick { x, y }
         | Event::RightClick { x, y }
         | Event::DoubleClick { x, y }
-        | Event::MouseMove { x, y }
         => {
             trace!("emit event: {event:?}");
+            let _ = handle.emit(
+                &event.to_string(),
+                json!({
+                    "position": {
+                        "x": x,
+                        "y": y,
+                    }
+                }),
+            );
+            handle.polygon().emit(handle, event);
+        },
+        Event::MouseMove { x, y } => {
             let _ = handle.emit(
                 &event.to_string(),
                 json!({
