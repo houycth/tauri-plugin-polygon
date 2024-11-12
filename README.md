@@ -126,16 +126,19 @@ fn main() {
             }
         }))
         .setup(|app| {
+            let win = app.get_webview_window("main").unwrap();
+            // Make the window ignore mouse events
+            win.set_ignore_cursor_events(true).unwrap();
+
             // Register a polygon when application setup
             app.polygon().register("my-polygon").unwrap();
 
             // You may need to open devtools for debugging
             #[cfg(debug_assertions)]
             {
-                let win = app.get_webview_window("main").unwrap();
                 win.open_devtools();
             }
-        }
+        })
         .invoke_handler(tauri::generate_handler![])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
