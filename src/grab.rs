@@ -1,6 +1,9 @@
 use std::{
     fmt::Display,
-    sync::{atomic::Ordering, RwLock},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        RwLock,
+    },
     thread,
     time::Instant,
 };
@@ -22,6 +25,8 @@ static MOUSE_X: AtomicF64 = AtomicF64::new(0.0);
 /// Saves physical pixel number
 static MOUSE_Y: AtomicF64 = AtomicF64::new(0.0);
 
+static MOUSE_IN_POLYGON: AtomicBool = AtomicBool::new(false);
+
 #[derive(Debug)]
 pub enum Event {
     LeftClick { x: f64, y: f64 },
@@ -29,6 +34,8 @@ pub enum Event {
     RightClick { x: f64, y: f64 },
     Drag { from: Position, to: Position },
     MouseMove { x: f64, y: f64 },
+    MouseEnter(Vec<String>),
+    MouseLeave,
     Wheel { x: f64, y: f64 },
     Error(crate::Error),
 }
@@ -40,6 +47,8 @@ impl Display for Event {
             Event::DoubleClick { .. } => write!(f, "POLYGON_DOUBLE_CLICK"),
             Event::RightClick { .. } => write!(f, "POLYGON_RIGHT_CLICK"),
             Event::MouseMove { .. } => write!(f, "POLYGON_MOUSE_MOVE"),
+            Event::MouseEnter { .. } => write!(f, "POLYGON_MOUSE_Enter"),
+            Event::MouseLeave { .. } => write!(f, "POLYGON_MOUSE_LEAVE"),
             Event::Wheel { .. } => write!(f, "POLYGON_WHEEL"),
             Event::Drag { .. } => write!(f, "POLYGON_DRAG"),
             Event::Error(..) => write!(f, "POLYGON_ERROR"),
@@ -73,10 +82,7 @@ fn set_mouse_position(x: f64, y: f64) {
 
 fn emit<R: Runtime>(handle: &AppHandle<R>, event: Event) {
     match event {
-        Event::LeftClick { x, y }
-        | Event::RightClick { x, y }
-        | Event::DoubleClick { x, y }
-        => {
+        Event::LeftClick { x, y } | Event::RightClick { x, y } | Event::DoubleClick { x, y } => {
             trace!("emit event: {event:?}");
             let _ = handle.emit(
                 &event.to_string(),
@@ -88,7 +94,7 @@ fn emit<R: Runtime>(handle: &AppHandle<R>, event: Event) {
                 }),
             );
             handle.polygon().emit(handle, event);
-        },
+        }
         Event::MouseMove { x, y } => {
             let _ = handle.emit(
                 &event.to_string(),
@@ -112,6 +118,17 @@ fn emit<R: Runtime>(handle: &AppHandle<R>, event: Event) {
                     }
                 }),
             );
+            handle.polygon().emit(handle, event);
+        }
+        Event::MouseEnter(ids) => {
+            trace!("emit event: MouseEnter {ids:?}");
+            let event = Event::MouseEnter(ids);
+            let _ = handle.emit(&event.to_string(), json!({}));
+            handle.polygon().emit(handle, event);
+        }
+        Event::MouseLeave => {
+            trace!("emit event: {event:?}");
+            let _ = handle.emit(&event.to_string(), json!({}));
             handle.polygon().emit(handle, event);
         }
         Event::Drag { from, to } => {
@@ -240,21 +257,47 @@ pub fn init<R: Runtime>(win: Window<R>) {
                             polygon.set_cursor_in(false);
                         }
                     }
+
+                    let handle = win.app_handle();
+                    let polygons = match view::cursor_in() {
+                        Ok(v) => v,
+                        Err(e) => {
+                            emit(&handle, Event::Error(e));
+                            return Some(ev);
+                        }
+                    };
+
                     // we have no way to ignore cursor event separately for each polygon
                     // so we should not ignore it if there is at least one polygon in the registered area
-                    if at_least_one {
+                    if at_least_one && !MOUSE_IN_POLYGON.load(Ordering::SeqCst) {
                         win.set_ignore_cursor_events(false).unwrap();
-                    } else {
+                        MOUSE_IN_POLYGON.store(true, Ordering::SeqCst);
+                        emit(handle, Event::MouseEnter(polygons));
+                    } else if (!at_least_one) && MOUSE_IN_POLYGON.load(Ordering::SeqCst) {
                         win.set_ignore_cursor_events(true).unwrap();
+                        MOUSE_IN_POLYGON.store(false, Ordering::SeqCst);
+                        emit(handle, Event::MouseLeave);
                     }
                     let handle = win.app_handle();
                     let mouse_pos = get_mouse_position();
-                    emit(&handle, Event::MouseMove { x: mouse_pos.0, y: mouse_pos.1 });
+                    emit(
+                        &handle,
+                        Event::MouseMove {
+                            x: mouse_pos.0,
+                            y: mouse_pos.1,
+                        },
+                    );
                     Some(ev)
                 }
                 rdev::EventType::Wheel { delta_x, delta_y } => {
                     let handle = win.app_handle();
-                    emit(&handle, Event::Wheel { x: delta_x as f64, y: delta_y as f64 });
+                    emit(
+                        &handle,
+                        Event::Wheel {
+                            x: delta_x as f64,
+                            y: delta_y as f64,
+                        },
+                    );
                     Some(ev)
                 }
                 _ => Some(ev),
