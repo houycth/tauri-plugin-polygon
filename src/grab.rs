@@ -248,37 +248,30 @@ pub fn init<R: Runtime>(win: Window<R>) {
 
                     let registered = REGISTERED_POLYGON.get().unwrap().read().unwrap();
 
-                    let mut at_least_one = false;
+                    let mut ids = Vec::new();
                     for polygon in registered.values() {
                         if view::pos_contained(polygon, x, y) {
                             polygon.set_cursor_in(true);
-                            at_least_one = true;
+                            ids.push(polygon.id().to_owned());
                         } else {
                             polygon.set_cursor_in(false);
                         }
                     }
 
                     let handle = win.app_handle();
-                    let polygons = match view::cursor_in() {
-                        Ok(v) => v,
-                        Err(e) => {
-                            emit(&handle, Event::Error(e));
-                            return Some(ev);
-                        }
-                    };
 
                     // we have no way to ignore cursor event separately for each polygon
                     // so we should not ignore it if there is at least one polygon in the registered area
-                    if at_least_one && !MOUSE_IN_POLYGON.load(Ordering::SeqCst) {
+                    if ids.len() > 0 && !MOUSE_IN_POLYGON.load(Ordering::SeqCst) {
                         win.set_ignore_cursor_events(false).unwrap();
                         MOUSE_IN_POLYGON.store(true, Ordering::SeqCst);
-                        emit(handle, Event::MouseEnter(polygons));
-                    } else if (!at_least_one) && MOUSE_IN_POLYGON.load(Ordering::SeqCst) {
+                        emit(handle, Event::MouseEnter(ids));
+                    } else if (ids.len() == 0) && MOUSE_IN_POLYGON.load(Ordering::SeqCst) {
                         win.set_ignore_cursor_events(true).unwrap();
                         MOUSE_IN_POLYGON.store(false, Ordering::SeqCst);
                         emit(handle, Event::MouseLeave);
                     }
-                    let handle = win.app_handle();
+
                     let mouse_pos = get_mouse_position();
                     emit(
                         &handle,
