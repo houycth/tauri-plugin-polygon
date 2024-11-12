@@ -47,7 +47,7 @@ impl Display for Event {
             Event::DoubleClick { .. } => write!(f, "POLYGON_DOUBLE_CLICK"),
             Event::RightClick { .. } => write!(f, "POLYGON_RIGHT_CLICK"),
             Event::MouseMove { .. } => write!(f, "POLYGON_MOUSE_MOVE"),
-            Event::MouseEnter { .. } => write!(f, "POLYGON_MOUSE_Enter"),
+            Event::MouseEnter { .. } => write!(f, "POLYGON_MOUSE_ENTER"),
             Event::MouseLeave { .. } => write!(f, "POLYGON_MOUSE_LEAVE"),
             Event::Wheel { .. } => write!(f, "POLYGON_WHEEL"),
             Event::Drag { .. } => write!(f, "POLYGON_DRAG"),
