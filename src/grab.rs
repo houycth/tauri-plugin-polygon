@@ -8,7 +8,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use log::{ error, trace, warn};
+use log::{ error, trace };
 use portable_atomic::AtomicF64;
 use rdev;
 use serde::{Deserialize, Serialize};
@@ -229,7 +229,6 @@ pub fn init<R: Runtime>(win: Window<R>) {
                                 let is_double_click = IS_DOUBLE_CLICK.load(Ordering::SeqCst);
                                 IS_DOUBLE_CLICK.store(false, Ordering::SeqCst);
                                 if !is_double_click {
-                                    warn!("LeftClick");
                                     emit(&handle_clone, Event::LeftClick { x, y });
                                 }
                             });
@@ -243,7 +242,6 @@ pub fn init<R: Runtime>(win: Window<R>) {
                         if elapsed < 150 && (x == last_click_x && y == last_click_y) && last_click_elapsed <= 250 {
                             IS_DOUBLE_CLICK.store(true, Ordering::SeqCst);
                             emit(&handle, Event::DoubleClick { x, y });
-                            warn!("DoubleClick");
                             return Some(ev);
                         }
 
@@ -259,7 +257,6 @@ pub fn init<R: Runtime>(win: Window<R>) {
                                     to: Position { x, y },
                                 },
                             );
-                            warn!("Drag");
                             return Some(ev);
                         }
                     }
