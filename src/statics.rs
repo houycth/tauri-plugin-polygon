@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    sync::{atomic::Ordering, Arc, OnceLock, RwLock},
+    sync::{atomic::{AtomicBool, Ordering}, Arc, OnceLock, RwLock},
 };
 
 use portable_atomic::AtomicF64;
@@ -12,6 +12,7 @@ pub(crate) static REGISTERED_POLYGON: OnceLock<Arc<RwLock<HashMap<String, Polygo
     OnceLock::new();
 pub(crate) static REGISTERED_IDS: OnceLock<Arc<RwLock<HashSet<String>>>> = OnceLock::new();
 pub(crate) static PHYSICAL_WIDTH: AtomicF64 = AtomicF64::new(0.0);
+pub(crate) static IS_DOUBLE_CLICK: AtomicBool = AtomicBool::new(false);
 
 pub(crate) fn init<R: Runtime>(win: Window<R>) {
     let win_size = win.outer_size().unwrap();

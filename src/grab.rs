@@ -5,20 +5,21 @@ use std::{
         RwLock,
     },
     thread,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
-use log::{error, trace};
+use log::{ error, trace, warn};
 use portable_atomic::AtomicF64;
 use rdev;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, Runtime, Window};
 
-use crate::statics::REGISTERED_POLYGON;
+use crate::statics::{REGISTERED_POLYGON, IS_DOUBLE_CLICK};
 use crate::utils::Convert;
 use crate::view;
 use crate::PolygonExt;
+use crate::thread_pool::ThreadPool;
 
 /// Saves physical pixel number
 static MOUSE_X: AtomicF64 = AtomicF64::new(0.0);
@@ -166,10 +167,14 @@ fn emit<R: Runtime>(handle: &AppHandle<R>, event: Event) {
 
 pub fn init<R: Runtime>(win: Window<R>) {
     let last_click_time = RwLock::new(Instant::now());
+    let last_click_pos_x = AtomicF64::new(0.0);
+    let last_click_pos_y = AtomicF64::new(0.0);
     let press_time = RwLock::new(Instant::now());
     let press_pos = RwLock::new(Position { x: 0.0, y: 0.0 });
     let win_clone_01 = win.clone();
     let win_clone_02 = win.clone();
+
+    let pool = ThreadPool::new(2);
 
     let thread_handle = thread::Builder::new()
         .name("polygon-grab".to_string())
@@ -202,18 +207,50 @@ pub fn init<R: Runtime>(win: Window<R>) {
                     if polygons.len() == 0 {
                         let (x, y) = get_mouse_position();
                         let press_pos = press_pos.read().unwrap();
-                        // we assume it's a drag if the elapsed is more than 150ms or the mouse position has changed,
-                        // otherwise it's a click.
-                        if elapsed < 150 || (press_pos.x == x && press_pos.y == y) {
-                            let mut last_click_time = last_click_time.write().unwrap();
-                            let last_click_elapsed = last_click_time.elapsed().as_millis();
-                            if last_click_elapsed < 400 {
-                                emit(&handle, Event::DoubleClick { x, y });
-                            } else {
-                                emit(&handle, Event::LeftClick { x, y });
-                            }
-                            *last_click_time = Instant::now();
-                        } else {
+
+                        let last_click_x = last_click_pos_x.load(Ordering::SeqCst);
+                        let last_click_y = last_click_pos_y.load(Ordering::SeqCst);
+
+                        last_click_pos_x.store(x, Ordering::SeqCst);
+                        last_click_pos_y.store(y, Ordering::SeqCst);
+
+                        let mut last_click_time = last_click_time.write().unwrap();
+                        let last_click_elapsed = last_click_time.elapsed().as_millis();
+                        *last_click_time = Instant::now();
+
+                        // we assume it's a click if
+                        // the elapsed between press and release is less than 150ms
+                        // the elapsed between last click and current click is more than 250ms
+                        if elapsed < 150 && last_click_elapsed > 250 {
+                            let handle_clone = handle.clone();
+                            // Cancle the previous click event if it's a double click
+                            pool.execute(move || {
+                                thread::sleep(Duration::from_millis(250));
+                                let is_double_click = IS_DOUBLE_CLICK.load(Ordering::SeqCst);
+                                IS_DOUBLE_CLICK.store(false, Ordering::SeqCst);
+                                if !is_double_click {
+                                    warn!("LeftClick");
+                                    emit(&handle_clone, Event::LeftClick { x, y });
+                                }
+                            });
+                            return Some(ev);
+                        }
+
+                        // we assume it's a double click if
+                        // the elapsed is less than 150ms
+                        // the mouse position (compared to last click) has not changed
+                        // the elapsed between last click and current click is less than 250ms
+                        if elapsed < 150 && (x == last_click_x && y == last_click_y) && last_click_elapsed <= 250 {
+                            IS_DOUBLE_CLICK.store(true, Ordering::SeqCst);
+                            emit(&handle, Event::DoubleClick { x, y });
+                            warn!("DoubleClick");
+                            return Some(ev);
+                        }
+
+                        // we assume it's a drag if
+                        // the elapsed is more than 150ms
+                        // the mouse position (compared to press position) has changed
+                        if elapsed >= 150 && (press_pos.x != x || press_pos.y != y) {
                             let (x, y) = get_mouse_position();
                             emit(
                                 &handle,
@@ -222,6 +259,8 @@ pub fn init<R: Runtime>(win: Window<R>) {
                                     to: Position { x, y },
                                 },
                             );
+                            warn!("Drag");
+                            return Some(ev);
                         }
                     }
                     Some(ev)
