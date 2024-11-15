@@ -5,7 +5,7 @@ use std::{
         RwLock,
     },
     thread,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use log::{ error, trace };
@@ -19,7 +19,6 @@ use crate::statics::{REGISTERED_POLYGON, IS_DOUBLE_CLICK};
 use crate::utils::Convert;
 use crate::view;
 use crate::PolygonExt;
-use crate::thread_pool::ThreadPool;
 
 /// Saves physical pixel number
 static MOUSE_X: AtomicF64 = AtomicF64::new(0.0);
@@ -174,8 +173,6 @@ pub fn init<R: Runtime>(win: Window<R>) {
     let win_clone_01 = win.clone();
     let win_clone_02 = win.clone();
 
-    let pool = ThreadPool::new(2);
-
     let thread_handle = thread::Builder::new()
         .name("polygon-grab".to_string())
         .spawn(move || {
@@ -221,8 +218,8 @@ pub fn init<R: Runtime>(win: Window<R>) {
                         // we assume it's a double click if
                         // the elapsed is less than 150ms
                         // the mouse position (compared to last click) has not changed
-                        // the elapsed between last click and current click is less than 250ms
-                        if elapsed < 150 && (x == last_click_x && y == last_click_y) && last_click_elapsed <= 250 {
+                        // the elapsed between last click and current click is less than 400ms
+                        if elapsed < 150 && (x == last_click_x && y == last_click_y) && last_click_elapsed <= 400 {
                             IS_DOUBLE_CLICK.store(true, Ordering::SeqCst);
                             emit(&handle, Event::DoubleClick { x, y });
                             return Some(ev);
@@ -245,17 +242,9 @@ pub fn init<R: Runtime>(win: Window<R>) {
 
                         // we assume it's a click if
                         // the elapsed between press and release is less than 150ms
-                        // the elapsed between last click and current click is more than 250ms
-                        let handle_clone = handle.clone();
-                        // Cancle the previous click event if it's a double click
-                        pool.execute(move || {
-                            thread::sleep(Duration::from_millis(250));
-                            let is_double_click = IS_DOUBLE_CLICK.load(Ordering::SeqCst);
-                            IS_DOUBLE_CLICK.store(false, Ordering::SeqCst);
-                            if !is_double_click {
-                                emit(&handle_clone, Event::LeftClick { x, y });
-                            }
-                        });
+                        // the elapsed between last click and current click is more than 400ms
+                        // trigger CleftClick by default
+                        emit(&handle, Event::LeftClick { x, y });
                     }
                     Some(ev)
                 }

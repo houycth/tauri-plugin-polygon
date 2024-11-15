@@ -14,7 +14,6 @@ mod polygon;
 mod statics;
 mod utils;
 mod view;
-mod thread_pool;
 
 pub use desktop::Polygon;
 pub use error::{Error, Result};
