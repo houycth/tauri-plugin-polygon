@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, Runtime, Window};
 
-use crate::statics::{REGISTERED_POLYGON, IS_DOUBLE_CLICK};
+use crate::statics::REGISTERED_POLYGON;
 use crate::utils::Convert;
 use crate::view;
 use crate::PolygonExt;
@@ -220,7 +220,6 @@ pub fn init<R: Runtime>(win: Window<R>) {
                         // the mouse position (compared to last click) has not changed
                         // the elapsed between last click and current click is less than 400ms
                         if elapsed < 150 && (x == last_click_x && y == last_click_y) && last_click_elapsed <= 400 {
-                            IS_DOUBLE_CLICK.store(true, Ordering::SeqCst);
                             emit(&handle, Event::DoubleClick { x, y });
                             return Some(ev);
                         }
