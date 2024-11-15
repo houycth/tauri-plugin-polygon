@@ -218,23 +218,6 @@ pub fn init<R: Runtime>(win: Window<R>) {
                         let last_click_elapsed = last_click_time.elapsed().as_millis();
                         *last_click_time = Instant::now();
 
-                        // we assume it's a click if
-                        // the elapsed between press and release is less than 150ms
-                        // the elapsed between last click and current click is more than 250ms
-                        if elapsed < 150 && last_click_elapsed > 250 {
-                            let handle_clone = handle.clone();
-                            // Cancle the previous click event if it's a double click
-                            pool.execute(move || {
-                                thread::sleep(Duration::from_millis(250));
-                                let is_double_click = IS_DOUBLE_CLICK.load(Ordering::SeqCst);
-                                IS_DOUBLE_CLICK.store(false, Ordering::SeqCst);
-                                if !is_double_click {
-                                    emit(&handle_clone, Event::LeftClick { x, y });
-                                }
-                            });
-                            return Some(ev);
-                        }
-
                         // we assume it's a double click if
                         // the elapsed is less than 150ms
                         // the mouse position (compared to last click) has not changed
@@ -248,7 +231,7 @@ pub fn init<R: Runtime>(win: Window<R>) {
                         // we assume it's a drag if
                         // the elapsed is more than 150ms
                         // the mouse position (compared to press position) has changed
-                        if elapsed >= 150 && (press_pos.x != x || press_pos.y != y) {
+                        if press_pos.x != x || press_pos.y != y {
                             let (x, y) = get_mouse_position();
                             emit(
                                 &handle,
@@ -259,6 +242,20 @@ pub fn init<R: Runtime>(win: Window<R>) {
                             );
                             return Some(ev);
                         }
+
+                        // we assume it's a click if
+                        // the elapsed between press and release is less than 150ms
+                        // the elapsed between last click and current click is more than 250ms
+                        let handle_clone = handle.clone();
+                        // Cancle the previous click event if it's a double click
+                        pool.execute(move || {
+                            thread::sleep(Duration::from_millis(250));
+                            let is_double_click = IS_DOUBLE_CLICK.load(Ordering::SeqCst);
+                            IS_DOUBLE_CLICK.store(false, Ordering::SeqCst);
+                            if !is_double_click {
+                                emit(&handle_clone, Event::LeftClick { x, y });
+                            }
+                        });
                     }
                     Some(ev)
                 }
